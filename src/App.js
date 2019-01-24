@@ -3,32 +3,25 @@ import logo from './logo.svg';
 import './App.css';
 
 class App extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      note: "",
-      date: ""
+
+    state = {
+        note: "",
+        date: ""
     };
 
-    this.textAreaPlaceHolder = "Enter a note about today"
+    textAreaPlaceHolder = "Enter a note about today"
 
-    this.handleChange = this.handleChange.bind(this);
-    this.handleDateChange = this.handleDateChange.bind(this);
-    this.handleSubmit = this.handleSubmit.bind(this);
-
-  }
-
-  handleChange(event) {
+  handleChange = (event) => {
     console.log(event.target.value);
     this.setState({note: event.target.value});
   }
 
-  handleDateChange(event) {
+  handleDateChange = (event) => {
     console.log(event.target.value);
     this.setState({date: event.target.value});
   }
 
-  handleSubmit(event) {
+  handleSubmit = (event) => {
     console.log(this.state.note + " " + this.state.date);
     event.preventDefault();
 
@@ -38,20 +31,22 @@ class App extends Component {
         }
     console.log(data);
 
-    // fetch("http://localhost:3001/note/new", {
-    //         method: 'POST',
-    //         headers: {'Content-Type': 'application/json'},
-    //         body: JSON.stringify(data)
-    //     }).then(function(response) {
-    //         if (response.status >= 400) {
-    //           throw new Error("Bad response from server");
-    //         }
-    //         return response.json();
-    //     }).then(function(data) {
-    //         console.log(data)    
-    //     }).catch(function(err) {
-    //         console.log(err)
-    //     });
+
+    //todo: change addresses to environmental variables
+    fetch("http://localhost:3001/note/new", {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        }).then(function(response) {
+            if (response.status >= 400) {
+              throw new Error("Bad response from server");
+            }
+            return response.json();
+        }).then(function(data) {
+            console.log(data)
+        }).catch(function(err) {
+            console.log(err)
+        });
   }
 
   componentDidMount() {
@@ -63,11 +58,10 @@ class App extends Component {
                 throw new Error("Bad response from server");
             }
             return response.json();
-        }).then(function(data) {
-          var resultDate = new Date(data[0].date);
-            console.log(resultDate.toLocaleDateString());
-            self.setState({note: data[0].note, date: resultDate.toISOString()});
-            
+        }).then(function(data) {//todo: fix for no data returned
+            console.log(data[0].date);
+            self.setState({note: data[0].note, date: data[0].date});
+
         }).catch(err => {
         console.log('caught it!',err);
         })

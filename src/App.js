@@ -6,7 +6,8 @@ class App extends Component {
 
     state = {
         note: "",
-        date: ""
+        date: "",
+        userId: 0
     };
 
     textAreaPlaceHolder = "Enter a note about today"
@@ -25,15 +26,16 @@ class App extends Component {
         console.log(this.state.note + " " + this.state.date);
         event.preventDefault();
 
-        var data = {
+        let data = {
             note: this.state.note,
-            date: this.state.date
+            date: this.state.date,
+            userId: this.state.userId
         }
         console.log(data);
 
 
         //todo: change addresses to environmental variables
-        fetch("http://localhost:3001/note/new", {
+        fetch("http://localhost:3001/note", {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
@@ -43,24 +45,35 @@ class App extends Component {
             }
             return response.json();
         }).then(function (data) {
+            //todo: handle duplicate result
             console.log(data)
         }).catch(function (err) {
             console.log(err)
         });
     }
 
+    handleUserIdChange = (event) => {
+        console.log(event.target.value);
+        this.setState({userId: event.target.value});
+    }
+
     componentDidMount() {
         let self = this;
-        fetch('http://localhost:3001/note', {
+        //todo: change url to get using id instead of hardcoded '1'
+        fetch('http://localhost:3001/note/1', {
             method: 'GET'
         }).then(function (response) {
             if (response.status >= 400) {
                 throw new Error("Bad response from server");
             }
             return response.json();
-        }).then(function (data) {//todo: fix for no data returned
+        }).then(function (data) {//todo: fix for no data returned and multiple entries
             console.log(data[0].date);
-            self.setState({note: data[0].note, date: data[0].date});
+            self.setState({
+                note: data[0].note,
+                date: data[0].date,
+                userId: data[0].userId
+            });
 
         }).catch(err => {
             console.log('caught it!', err);
@@ -77,12 +90,15 @@ class App extends Component {
                         Edit <code>src/App.js</code> and save to reload
                     </p>
                     <form onSubmit={this.handleSubmit}>
-                        <label>
+                        <p>
                             Note: <textarea value={this.state.note} onChange={this.handleChange}
                                             placeholder={this.textAreaPlaceHolder}/>
-                        </label>
+                        </p>
                         <p>
                             Date: <input value={this.state.date} onChange={this.handleDateChange} type="Date"/>
+                        </p>
+                        <p>
+                            User Id: <input value={this.state.userId} onChange={this.handleUserIdChange}/>
                         </p>
                         <input type="submit" value="submit"/>
                     </form>

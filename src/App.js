@@ -2,28 +2,26 @@ import React, {Component} from 'react';
 import logo from './logo.svg';
 import './App.css';
 
+const textAreaPlaceHolder = "Enter a note";
+
 class App extends Component {
 
     state = {
         note: "",
         date: "",
-        userId: 0
+        userId: 0,
+        notes: []
     };
 
-    textAreaPlaceHolder = "Enter a note about today"
-
     handleChange = (event) => {
-        console.log(event.target.value);
         this.setState({note: event.target.value});
     }
 
     handleDateChange = (event) => {
-        console.log(event.target.value);
         this.setState({date: event.target.value});
     }
 
     handleSubmit = (event) => {
-        console.log(this.state.note + " " + this.state.date);
         event.preventDefault();
 
         let data = {
@@ -33,7 +31,7 @@ class App extends Component {
         }
         console.log(data);
 
-
+        const self = this;
         //todo: change addresses to environmental variables
         fetch("http://localhost:3001/note", {
             method: 'POST',
@@ -45,22 +43,24 @@ class App extends Component {
             }
             return response.json();
         }).then(function (data) {
-            //todo: handle duplicate result
-            console.log(data)
+            self.setState({notes:[...self.state.notes, data]})
         }).catch(function (err) {
             console.log(err)
         });
     }
 
     handleUserIdChange = (event) => {
-        console.log(event.target.value);
         this.setState({userId: event.target.value});
     }
 
     componentDidMount() {
-        let self = this;
+        this.getNotes()
+    }
+
+    getNotes(){
+        const self = this;
         //todo: change url to get using id instead of hardcoded '1'
-        fetch('http://localhost:3001/note/1', {
+        fetch('http://localhost:3001/note/2', {
             method: 'GET'
         }).then(function (response) {
             if (response.status >= 400) {
@@ -68,11 +68,11 @@ class App extends Component {
             }
             return response.json();
         }).then(function (data) {//todo: fix for no data returned and multiple entries
-            console.log(data[0].date);
+            if (!data) {
+                return;
+            }
             self.setState({
-                note: data[0].note,
-                date: data[0].date,
-                userId: data[0].userId
+                notes: data
             });
 
         }).catch(err => {
@@ -82,17 +82,35 @@ class App extends Component {
 
 
     render() {
+        let rows;
+        if(Array.isArray(this.state.notes)) {
+            rows = this.state.notes.map((note) => <tr key={note.noteId}>
+                <td>{note.note}</td>
+                <td>{note.date}</td>
+                <td>{note.userId}</td>
+            </tr>)
+        }
+
+
         return (
             <div className="App">
                 <header className="App-header">
                     <img src={logo} className="App-logo" alt="logo"/>
-                    <p>
-                        Edit <code>src/App.js</code> and save to reload
-                    </p>
+                    <table>
+                        <tbody>
+                        <tr>
+                            <th>note</th>
+                            <th>date</th>
+                            <th>userId</th>
+                        </tr>
+                        {rows}
+                        </tbody>
+                    </table>
                     <form onSubmit={this.handleSubmit}>
+                        <h1> Add New Note: </h1>
                         <p>
                             Note: <textarea value={this.state.note} onChange={this.handleChange}
-                                            placeholder={this.textAreaPlaceHolder}/>
+                                            placeholder={textAreaPlaceHolder}/>
                         </p>
                         <p>
                             Date: <input value={this.state.date} onChange={this.handleDateChange} type="Date"/>
@@ -106,6 +124,8 @@ class App extends Component {
             </div>
         );
     }
+
+
 }
 
 export default App;

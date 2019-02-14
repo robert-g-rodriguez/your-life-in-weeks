@@ -4,10 +4,10 @@ let moment = require('moment');
 let router = express.Router();
 let pool = mySqlConnection.connectionPool;
 let promiseQuery = mySqlConnection.query;
-let userId = 'userId';
-let note = 'note';
-let date = 'date';
-let noteId = 'noteId';
+const userId = 'userId';
+const note = 'note';
+const date = 'date';
+const noteId = 'noteId';
 
 function formatResults(results) {
     return results.map(note => {
@@ -32,13 +32,8 @@ function query(statement, statementArguments, response) {
     });
 }
 
-function formatMissingProperties(missingProperties, response) {
-    let message = "missing propert";
-    if (missingProperties.length > 1) {
-        message += "ies: ";
-    } else {
-        message += "y: ";
-    }
+function formatMissingPropertiesResponse(missingProperties, response) {
+    let message = "missing propert" + ((missingProperties.length > 1) ? "ies: " : "y: ");
     response.status(400).json(message + missingProperties);
 }
 
@@ -58,28 +53,15 @@ router.get('/:' + userId, (req, res) => {
 
 
 router.route('/')
-    .post(function (req, res) { //new
-
-        let missingProperties = [];
-
-        if (!req.body.hasOwnProperty(userId)) {
-            missingProperties.push(userId);
-        }
-
-        if (!req.body.hasOwnProperty(note)) {
-            missingProperties.push(note);
-        }
-
-        if (!req.body.hasOwnProperty(date)) {
-            missingProperties.push(date);
-        } else {
-            //todo:check for date format
-        }
+    .post(function (request, response) { //new
+        let requiredProperties = [userId, note, date];
+        let missingProperties = requiredProperties.filter((property) => !request.body.hasOwnProperty(property));
+        //todo: check for proper date format
 
         if (missingProperties.length > 0) {
-            formatMissingProperties(missingProperties, res);
+            formatMissingPropertiesResponse(missingProperties, response);
         } else {
-            const inserts = [req.body.userId, req.body.note, req.body.date, req.body.date];
+            const inserts = [request.body.userId, request.body.note, request.body.date, request.body.date];
             //check if note exists already, note exists when same date and note
             const checkStatement = "SELECT * FROM NOTES WHERE USER_ID = ? " +
                 "AND NOTE = ? AND DATE = ? and LIFE_WEEK_DATE = ?";
@@ -90,31 +72,25 @@ router.route('/')
                 })
                 .then(duplicateNote => {
                     if (duplicateNote) {
-                        res.json("error duplicate note");
+                        response.json("error duplicate note");
                     } else {
                         //TODO: calculate LIFE_WEEK_DATE
                         const insertStatement = "INSERT INTO notes( user_id, note, date, life_week_date) VALUES (?, ?, ?, ?)";
-                        query(insertStatement, inserts, res);
+                        query(insertStatement, inserts, response);
                     }
                 })
                 .catch(error => {
-                    res.status(500).json(error);
+                    response.status(500).json(error);
                 });
         }
     })
     .put(function (request, response) { //update
         //only allow note to be changed
-        let missingProperties = [];
+        let requiredProperties = [noteId, note];
+        let missingProperties = requiredProperties.filter((property) => !request.body.hasOwnProperty(property));
 
-        if (!request.body.hasOwnProperty(noteId)) {
-            missingProperties.push(noteId);
-        }
-
-        if (!request.body.hasOwnProperty(note)) {
-            missingProperties.push(note);
-        }
         if (missingProperties.length > 0) {
-            formatMissingProperties(missingProperties, response);
+            formatMissingPropertiesResponse(missingProperties, response);
         } else {
             const inserts = [request.body.note, request.body.noteId];
             const updateStatement = "UPDATE NOTES SET NOTE = ? WHERE NOTE_ID = ?";
@@ -123,14 +99,11 @@ router.route('/')
     })
     .delete(function (request, response) { //delete, duh!
         //delete by note_id
-        let missingProperties = [];
-
-        if (!request.body.hasOwnProperty(noteId)) {
-            missingProperties.push(noteId);
-        }
+        let requiredProperties = [noteId];
+        let missingProperties = requiredProperties.filter((property) => !request.body.hasOwnProperty(property));
 
         if (missingProperties.length > 0) {
-            formatMissingProperties(missingProperties, response);
+            formatMissingPropertiesResponse(missingProperties, response);
         } else {
             const inserts = [request.body.noteId];
             const deleteStatement = "DELETE FROM NOTES WHERE NOTE_ID = ?";

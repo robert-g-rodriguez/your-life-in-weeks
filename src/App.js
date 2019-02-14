@@ -2,14 +2,15 @@ import React, {Component} from 'react';
 import logo from './logo.svg';
 import './App.css';
 
-const textAreaPlaceHolder = "Enter a note";
+const TEXTAREA_PLACEHOLDER = "Enter a note";
+const HOST_AND_PORT = process.env.REACT_APP_BACKEND_HOST + ":" + process.env.REACT_APP_BACKEND_PORT + "/";
 
 class App extends Component {
 
     state = {
         note: "",
         date: "",
-        userId: 0,
+        userId: 1,
         notes: []
     };
 
@@ -32,8 +33,7 @@ class App extends Component {
         console.log(data);
 
         const self = this;
-        //todo: change addresses to environmental variables
-        fetch("http://localhost:3001/note", {
+        fetch(HOST_AND_PORT + 'note', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
@@ -43,7 +43,7 @@ class App extends Component {
             }
             return response.json();
         }).then(function (data) {
-            self.setState({notes:[...self.state.notes, data]})
+            self.setState({notes: [...self.state.notes, data]})
         }).catch(function (err) {
             console.log(err)
         });
@@ -54,20 +54,19 @@ class App extends Component {
     }
 
     componentDidMount() {
-        this.getNotes()
+        this.getNotes();
     }
 
     getNotes(){
         const self = this;
-        //todo: change url to get using id instead of hardcoded '1'
-        fetch('http://localhost:3001/note/2', {
+        fetch(HOST_AND_PORT + 'note/1', { //todo: change from hardcoded user id
             method: 'GET'
         }).then(function (response) {
             if (response.status >= 400) {
                 throw new Error("Bad response from server");
             }
             return response.json();
-        }).then(function (data) {//todo: fix for no data returned and multiple entries
+        }).then(function (data) {
             if (!data) {
                 return;
             }
@@ -83,14 +82,13 @@ class App extends Component {
 
     render() {
         let rows;
-        if(Array.isArray(this.state.notes)) {
+        if (Array.isArray(this.state.notes)) {
             rows = this.state.notes.map((note) => <tr key={note.noteId}>
                 <td>{note.note}</td>
                 <td>{note.date}</td>
                 <td>{note.userId}</td>
             </tr>)
         }
-
 
         return (
             <div className="App">
@@ -110,7 +108,7 @@ class App extends Component {
                         <h1> Add New Note: </h1>
                         <p>
                             Note: <textarea value={this.state.note} onChange={this.handleChange}
-                                            placeholder={textAreaPlaceHolder}/>
+                                            placeholder={TEXTAREA_PLACEHOLDER}/>
                         </p>
                         <p>
                             Date: <input value={this.state.date} onChange={this.handleDateChange} type="Date"/>

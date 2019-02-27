@@ -1,94 +1,172 @@
-import React, { Component } from 'react';
+import React, {Component} from 'react';
 import logo from './logo.svg';
-import './App.css';
+import moment from  'moment';
+// import './App.css';
+
+const TEXTAREA_PLACEHOLDER = "Enter a note";
+const HOST_AND_PORT = process.env.REACT_APP_BACKEND_HOST + ":" + process.env.REACT_APP_BACKEND_PORT + "/";
+const birthdate = "1982-04-19"; //todo: get birth date from user info
 
 class App extends Component {
 
     state = {
         note: "",
-        date: ""
+        date: "",
+        userId: 1,
+        notes: []
     };
 
-    textAreaPlaceHolder = "Enter a note about today"
+    handleChange = (event) => {
+        this.setState({note: event.target.value});
+    }
 
-  handleChange = (event) => {
-    console.log(event.target.value);
-    this.setState({note: event.target.value});
-  }
+    handleDateChange = (event) => {
+        this.setState({date: event.target.value});
+    }
 
-  handleDateChange = (event) => {
-    console.log(event.target.value);
-    this.setState({date: event.target.value});
-  }
+    handleSubmit = (event) => {
+        event.preventDefault();
 
-  handleSubmit = (event) => {
-    console.log(this.state.note + " " + this.state.date);
-    event.preventDefault();
-
-    var data = {
-          note: this.state.note,
-          date: this.state.date
+        let data = {
+            note: this.state.note,
+            date: this.state.date,
+            userId: this.state.userId
         }
-    console.log(data);
 
-
-    //todo: change addresses to environmental variables
-    fetch("http://localhost:3001/note/new", {
+        fetch(HOST_AND_PORT + 'note', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
-        }).then(function(response) {
-            if (response.status >= 400) {
-              throw new Error("Bad response from server");
-            }
-            return response.json();
-        }).then(function(data) {
-            console.log(data)
-        }).catch(function(err) {
-            console.log(err)
-        });
-  }
-
-  componentDidMount() {
-        let self = this;
-        fetch('http://localhost:3001/note', {
-            method: 'GET'
-        }).then(function(response) {
+        }).then((response)=> {
             if (response.status >= 400) {
                 throw new Error("Bad response from server");
             }
             return response.json();
-        }).then(function(data) {//todo: fix for no data returned
-            console.log(data[0].date);
-            self.setState({note: data[0].note, date: data[0].date});
+        }).then((response) =>{
+            data.noteId = response.noteId;
+            this.setState({notes: [...this.state.notes, data]});
+        }).catch( (err) => {
+            console.log(err)
+        });
+    }
+
+    handleUserIdChange = (event) => {
+        this.setState({userId: event.target.value});
+    }
+
+    getNotes = () => {
+        fetch(HOST_AND_PORT + 'note/1', { //todo: change from hardcoded user id
+            method: 'GET'
+        }).then((response) => {
+            if (response.status >= 400) {
+                throw new Error("Bad response from server");
+            }
+            return response.json();
+        }).then((data) => {
+            if (!data) {
+                return;
+            }
+            this.setState({
+                notes: data
+            });
 
         }).catch(err => {
-        console.log('caught it!',err);
+            console.log('caught it!', err);
         })
     }
 
+    componentDidMount() {
+        this.getNotes();
+    }
 
-  render() {
-    return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload
-          </p>
-          <form onSubmit={this.handleSubmit}>
-            <label>
-              Note: <textarea value ={this.state.note} onChange={this.handleChange} placeholder={this.textAreaPlaceHolder}/>
-            </label>
-            <p>
-              Date: <input value={this.state.date} onChange={this.handleDateChange} type="Date"/>
-            </p>
-            <input type="submit" value="submit" />
-          </form>
-        </header>
-      </div>
-    );
-  }
+
+    render() {
+
+        return (
+            <div className="App">
+                <header className="App-header">
+                    <img src={logo} className="App-logo" alt="logo"/>
+                    <table>
+                        <tbody>
+                        <tr>
+                            <th>note</th>
+                            <th>date</th>
+                            <th>userId</th>
+                            <th>Life Week</th>
+                        </tr>
+                        {this.renderRows()}
+                        </tbody>
+                    </table>
+                    <form onSubmit={this.handleSubmit}>
+                        <h1> Add New Note: </h1>
+                        <p>
+                            Note: <textarea value={this.state.note} onChange={this.handleChange}
+                                            placeholder={TEXTAREA_PLACEHOLDER}/>
+                        </p>
+                        <p>
+                            Date: <input value={this.state.date} onChange={this.handleDateChange} type="Date"/>
+                        </p>
+                        <p>
+                            User Id: <input value={this.state.userId} onChange={this.handleUserIdChange}/>
+                        </p>
+                        <input type="submit" value="submit"/>
+                    </form>
+                    {this.renderCalendar()}
+                </header>
+            </div>
+        );
+    }
+
+
+    renderRows() {
+        let rows;
+        //todo: decide on calculate life week or store in db
+        if (Array.isArray(this.state.notes)) {
+            rows = this.state.notes.map((note) => <tr key={note.noteId}>
+                <td>{note.note}</td>
+                <td>{note.date}</td>
+                <td>{note.userId}</td>
+                <td>{moment(note.date).diff(birthdate,"weeks")}</td>
+            </tr>)
+        }
+        return rows;
+    }
+
+    renderCalendar() {
+        let rows = [];
+        let birthday = moment(birthdate);//todo: get birthday from user info
+        let nextBirthday = moment(birthdate).add(1, "year");
+        let key = 0;
+        for (let i = 0; i <= 100; i++) {
+            let row = [];
+
+            let thisWeek = birthday.clone();
+            let nextWeek = thisWeek.clone().add(6, "days");
+
+            while(nextWeek.isBefore(nextBirthday)){
+                let weekTooltip = thisWeek.format("ddd MMM Do YYYY") + " - "
+                    + nextWeek.format("ddd MMM Do YYYY");
+                row.push(<span key={key} id={key++}  title={weekTooltip}>☐</span>);
+                thisWeek.add(1, "week");
+                nextWeek.add(1, "week");
+            }
+
+            rows.push(<tr key={key}>
+                <td>{birthday.year()}-Year:{i}</td>
+                <td>{row}</td>
+            </tr>);
+            birthday = thisWeek;
+            nextBirthday.add(1,"year");
+
+
+
+        }
+        return (<table>
+            <tbody>
+            {rows}
+            </tbody>
+        </table>);
+    }
 }
 
 export default App;

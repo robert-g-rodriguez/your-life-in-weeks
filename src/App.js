@@ -1,9 +1,11 @@
 import React, {Component} from 'react';
 import logo from './logo.svg';
-import './App.css';
+import moment from  'moment';
+// import './App.css';
 
 const TEXTAREA_PLACEHOLDER = "Enter a note";
 const HOST_AND_PORT = process.env.REACT_APP_BACKEND_HOST + ":" + process.env.REACT_APP_BACKEND_PORT + "/";
+const birthdate = "1982-04-19"; //todo: get birth date from user info
 
 class App extends Component {
 
@@ -30,21 +32,20 @@ class App extends Component {
             date: this.state.date,
             userId: this.state.userId
         }
-        console.log(data);
 
-        const self = this;
         fetch(HOST_AND_PORT + 'note', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
-        }).then(function (response) {
+        }).then((response)=> {
             if (response.status >= 400) {
                 throw new Error("Bad response from server");
             }
             return response.json();
-        }).then(function (data) {
-            self.setState({notes: [...self.state.notes, data]})
-        }).catch(function (err) {
+        }).then((response) =>{
+            data.noteId = response.noteId;
+            this.setState({notes: [...this.state.notes, data]});
+        }).catch( (err) => {
             console.log(err)
         });
     }
@@ -53,24 +54,19 @@ class App extends Component {
         this.setState({userId: event.target.value});
     }
 
-    componentDidMount() {
-        this.getNotes();
-    }
-
-    getNotes(){
-        const self = this;
+    getNotes = () => {
         fetch(HOST_AND_PORT + 'note/1', { //todo: change from hardcoded user id
             method: 'GET'
-        }).then(function (response) {
+        }).then((response) => {
             if (response.status >= 400) {
                 throw new Error("Bad response from server");
             }
             return response.json();
-        }).then(function (data) {
+        }).then((data) => {
             if (!data) {
                 return;
             }
-            self.setState({
+            this.setState({
                 notes: data
             });
 
@@ -79,16 +75,12 @@ class App extends Component {
         })
     }
 
+    componentDidMount() {
+        this.getNotes();
+    }
+
 
     render() {
-        let rows;
-        if (Array.isArray(this.state.notes)) {
-            rows = this.state.notes.map((note) => <tr key={note.noteId}>
-                <td>{note.note}</td>
-                <td>{note.date}</td>
-                <td>{note.userId}</td>
-            </tr>)
-        }
 
         return (
             <div className="App">
@@ -100,8 +92,9 @@ class App extends Component {
                             <th>note</th>
                             <th>date</th>
                             <th>userId</th>
+                            <th>Life Week</th>
                         </tr>
-                        {rows}
+                        {this.renderRows()}
                         </tbody>
                     </table>
                     <form onSubmit={this.handleSubmit}>
@@ -118,12 +111,62 @@ class App extends Component {
                         </p>
                         <input type="submit" value="submit"/>
                     </form>
+                    {this.renderCalendar()}
                 </header>
             </div>
         );
     }
 
 
+    renderRows() {
+        let rows;
+        //todo: decide on calculate life week or store in db
+        if (Array.isArray(this.state.notes)) {
+            rows = this.state.notes.map((note) => <tr key={note.noteId}>
+                <td>{note.note}</td>
+                <td>{note.date}</td>
+                <td>{note.userId}</td>
+                <td>{moment(note.date).diff(birthdate,"weeks")}</td>
+            </tr>)
+        }
+        return rows;
+    }
+
+    renderCalendar() {
+        let rows = [];
+        let birthday = moment(birthdate);//todo: get birthday from user info
+        let nextBirthday = moment(birthdate).add(1, "year");
+        let key = 0;
+        for (let i = 0; i <= 100; i++) {
+            let row = [];
+
+            let thisWeek = birthday.clone();
+            let nextWeek = thisWeek.clone().add(6, "days");
+
+            while(nextWeek.isBefore(nextBirthday)){
+                let weekTooltip = thisWeek.format("ddd MMM Do YYYY") + " - "
+                    + nextWeek.format("ddd MMM Do YYYY");
+                row.push(<span key={key} id={key++}  title={weekTooltip}>☐</span>);
+                thisWeek.add(1, "week");
+                nextWeek.add(1, "week");
+            }
+
+            rows.push(<tr key={key}>
+                <td>{birthday.year()}-Year:{i}</td>
+                <td>{row}</td>
+            </tr>);
+            birthday = thisWeek;
+            nextBirthday.add(1,"year");
+
+
+
+        }
+        return (<table>
+            <tbody>
+            {rows}
+            </tbody>
+        </table>);
+    }
 }
 
 export default App;

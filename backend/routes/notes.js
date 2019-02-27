@@ -10,14 +10,16 @@ const date = 'date';
 const noteId = 'noteId';
 
 function formatResults(results) {
-    return results.map(note => {
-        return {
-            note: note.note,
-            date: moment(note.date).format(moment.HTML5_FMT.DATE),
-            userId: note.user_id,
-            noteId: note.note_id
-        }
-    });
+    if (Array.isArray(results)) {
+        return results.map(note => {
+            return {
+                note: note.note,
+                date: moment(note.date).format(moment.HTML5_FMT.DATE),
+                userId: note.user_id,
+                noteId: note.note_id
+            }
+        });
+    }
 }
 
 function query(statement, statementArguments, response) {
@@ -27,7 +29,12 @@ function query(statement, statementArguments, response) {
             response.status(500).json(error.message);
 
         } else {
-            response.json(formatResults(results));
+            if (results.hasOwnProperty("insertId") && results.insertId > 0) {
+                response.status(200).json({noteId: results.insertId});
+            } else {
+                response.json(formatResults(results));
+            }
+
         }
     });
 }
@@ -40,20 +47,12 @@ function formatMissingPropertiesResponse(missingProperties, response) {
 
 /* GET all notes of user with id */
 router.get('/:' + userId, (req, res) => {
-    pool.query('SELECT * FROM NOTES WHERE USER_ID = ?', [req.params.userId], (error, results) => {
-        if (error) {
-            console.log(error);
-            res.status(500).json(error.message);
-
-        } else {
-            res.json(formatResults(results));
-        }
-    })
+    query('SELECT * FROM NOTES WHERE USER_ID = ?', [req.params.userId], res);
 });
 
 
 router.route('/')
-    .post(function (request, response) { //new
+    .post((request, response) => { //new
         let requiredProperties = [userId, note, date];
         let missingProperties = requiredProperties.filter((property) => !request.body.hasOwnProperty(property));
         //todo: check for proper date format
@@ -72,7 +71,7 @@ router.route('/')
                 })
                 .then(duplicateNote => {
                     if (duplicateNote) {
-                        response.json("error duplicate note");
+                        response.status(409).json({error: "duplicate note"});
                     } else {
                         //TODO: calculate LIFE_WEEK_DATE
                         const insertStatement = "INSERT INTO notes( user_id, note, date, life_week_date) VALUES (?, ?, ?, ?)";
@@ -84,7 +83,7 @@ router.route('/')
                 });
         }
     })
-    .put(function (request, response) { //update
+    .put((request, response) => { //update
         //only allow note to be changed
         let requiredProperties = [noteId, note];
         let missingProperties = requiredProperties.filter((property) => !request.body.hasOwnProperty(property));
@@ -97,7 +96,7 @@ router.route('/')
             query(updateStatement, inserts, response);
         }
     })
-    .delete(function (request, response) { //delete, duh!
+    .delete((request, response) => { //delete, duh!
         //delete by note_id
         let requiredProperties = [noteId];
         let missingProperties = requiredProperties.filter((property) => !request.body.hasOwnProperty(property));
@@ -107,14 +106,7 @@ router.route('/')
         } else {
             const inserts = [request.body.noteId];
             const deleteStatement = "DELETE FROM NOTES WHERE NOTE_ID = ?";
-            const sql = mySqlConnection.mysql.format(deleteStatement, inserts);
-            pool.query(sql, (error, results) => {
-                if (error) {
-                    response.status(500).json(error.message);
-                } else {
-                    response.status(200).json();
-                }
-            });
+            query(deleteStatement, inserts, response);
         }
     });
 

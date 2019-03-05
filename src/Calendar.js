@@ -11,9 +11,7 @@ class Calendar extends Component {
         this.setState({isFiftyTwoWeeks: event.target.value === 'true'})
     };
 
-    render() {
-        console.log('rendering Calendar');
-
+    createCalendar = () => {
         let rows = [];
         let birthday = moment(this.props.birthdate);//todo: get birthday from user info
         let thisWeek = birthday.clone();
@@ -23,7 +21,6 @@ class Calendar extends Component {
 
         for (let i = 0; i <= 100; i++) {
             let row = [];
-
             let nextWeek = thisWeek.clone().add(6, "days");
             for (let j = 0; this.state.isFiftyTwoWeeks ? j < 52 : nextWeek.isBefore(nextBirthday); j++) {
                 let weekTooltip = thisWeek.format("ddd MMM Do YYYY") + " - "
@@ -51,7 +48,10 @@ class Calendar extends Component {
             birthday = nextBirthday.clone();
             nextBirthday.add(1, "year");
         }
+        return rows;
+    }
 
+    render() {
         return (
             <>
                 <select value={this.state.isFiftyTwoWeeks} onChange={this.handleWeeksChange}>
@@ -60,7 +60,7 @@ class Calendar extends Component {
                 </select>
                 <table>
                     <tbody>
-                    {rows}
+                    {this.createCalendar()}
                     </tbody>
                 </table>
             </>

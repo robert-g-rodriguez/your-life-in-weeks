@@ -1,5 +1,4 @@
 import React, {Component} from 'react';
-import moment from 'moment';
 
 class NoteList extends Component {
 
@@ -28,7 +27,7 @@ class NoteList extends Component {
                 <td>{note.note}</td>
                 <td>{note.date}</td>
                 <td>{note.userId}</td>
-                <td>{moment(note.date).diff(this.props.birthdate, "weeks")}</td>
+                <td>{note.lifeWeek}</td>
             </tr>)
         }
         return rows;

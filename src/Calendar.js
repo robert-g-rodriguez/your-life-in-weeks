@@ -19,6 +19,7 @@ class Calendar extends Component {
         let thisWeek = birthday.clone();
         let nextBirthday = moment(this.props.birthdate).add(1, "year");
         let key = 0;
+        let notesCopy = this.props.notes.slice();
 
         for (let i = 0; i <= 100; i++) {
             let row = [];
@@ -27,7 +28,17 @@ class Calendar extends Component {
             for (let j = 0; this.state.isFiftyTwoWeeks ? j < 52 : nextWeek.isBefore(nextBirthday); j++) {
                 let weekTooltip = thisWeek.format("ddd MMM Do YYYY") + " - "
                     + nextWeek.format("ddd MMM Do YYYY");
-                let weekIcon = birthday.isBetween(thisWeek, nextWeek, null, '[]') ? '🎂' : '☐';
+                let nonBirthdayIcon = '☐';
+                if (notesCopy.length > 0 && notesCopy[0].lifeWeek === key) {
+                    nonBirthdayIcon = 'x';
+                    while (notesCopy[0].lifeWeek === key) {
+                        notesCopy.shift()
+                    }
+                }
+                let weekIcon = birthday.isBetween(thisWeek, nextWeek, null, '[]')
+                    ? '🎂'
+                    : nonBirthdayIcon;
+
                 row.push(<span key={key} id={key++} title={weekTooltip}>{weekIcon}</span>);
                 thisWeek.add(1, "week");
                 nextWeek.add(1, "week");
@@ -40,6 +51,7 @@ class Calendar extends Component {
             birthday = nextBirthday.clone();
             nextBirthday.add(1, "year");
         }
+
         return (
             <>
                 <select value={this.state.isFiftyTwoWeeks} onChange={this.handleWeeksChange}>

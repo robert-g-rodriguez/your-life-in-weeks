@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import logo from './logo.svg';
+import moment from 'moment';
 import NoteList from './NoteList';
 import Calendar from './Calendar';
 import NoteForm from './NoteForm';
@@ -25,6 +26,8 @@ class App extends Component {
             if (!data) {
                 return;
             }
+            data.sort(this.sortByDate);
+            data.forEach(note => {note.lifeWeek = moment(note.date).diff(birthdate, "weeks")});
             this.setState({
                 notes: data
             });
@@ -35,8 +38,15 @@ class App extends Component {
     };
 
     handleNewNote = (data) => {
-        this.setState({notes: [...this.state.notes, data]});
-    }
+        data.lifeWeek = moment(data.date).diff(birthdate, "weeks")
+        let sortedNotes = [...this.state.notes, data];
+        sortedNotes.sort(this.sortByDate);
+        this.setState({notes: sortedNotes});
+    };
+
+    sortByDate = (first, second) => {
+        return new Date(first.date) - new Date(second.date)
+    };
 
     componentDidMount() {
         this.getNotes();
@@ -49,9 +59,9 @@ class App extends Component {
             <div className="App">
                 <header className="App-header">
                     <img src={logo} className="App-logo" alt="logo"/>
-                    <NoteList notes={this.state.notes} birthdate={birthdate}/>
+                    <NoteList notes={this.state.notes} />
                     <NoteForm onNotesChange={this.handleNewNote} hostAndPort={HOST_AND_PORT}/>
-                    <Calendar birthdate={birthdate}/>
+                    <Calendar birthdate={birthdate} notes={this.state.notes}/>
                 </header>
             </div>
         );
